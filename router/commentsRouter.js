@@ -24,7 +24,7 @@ commentRouter.post("/", async (req, res)=>{
         data:{
             user: req.query.user,
             content: req.query.content,
-            postID: req.query.postID
+            postID: parseInt(req.query.postID)
         }
     })
     res.json(comment)

@@ -8,7 +8,9 @@ postRouter.get("/", async (req, res)=>{
     const posts = await prisma.posts.findMany({
         select:{
             id: true,
-            title: true
+            public: true,
+            title: true,
+            date: true
         }
     })
     res.json(posts)
@@ -30,7 +32,8 @@ postRouter.post("/", async (req, res)=>{
     const post = await prisma.posts.create({
         data:{
             title: req.query.title,
-            content: req.query.content
+            content: req.query.content,
+            public: req.query.public ==="true"
         }
     })
     res.json(post)
@@ -43,7 +46,8 @@ postRouter.put("/:id", async (req, res)=>{
         },
         data:{
             title: req.query.title,
-            content: req.query.content
+            content: req.query.content,
+            public: req.query.public ==="true"
         }
     })
     res.json(post)
