@@ -3,7 +3,6 @@ const commentRouter = Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-
 commentRouter.get("/", async (req, res)=>{
     const comments = await prisma.comments.findMany({
     })
@@ -31,6 +30,23 @@ commentRouter.post("/", async (req, res)=>{
 })
 
 commentRouter.put("/:id", async (req, res)=>{
+    
+    const user = await prisma.users.findUnique({
+        where: {
+            id: req.user.id
+        }
+    });
+    const tempComment = await prisma.comments.findUnique({
+        where: {
+            id: parseInt(req.params.id)
+        }
+    })
+    if((!tempComment || tempComment.userID != user.id) && !user.admin){
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+
     const comment = await prisma.comments.update({
         where: {
             id: parseInt(req.params.id)
@@ -44,6 +60,22 @@ commentRouter.put("/:id", async (req, res)=>{
 })
 
 commentRouter.delete("/:id", async (req, res)=>{
+    const user = await prisma.users.findUnique({
+        where: {
+            id: req.user.id
+        }
+    });
+    const tempComment = await prisma.comments.findUnique({
+        where: {
+            id: parseInt(req.params.id)
+        }
+    })
+    if((!tempComment || tempComment.userID != user.id) && !user.admin){
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+
     const comment = await prisma.comments.delete({
         where: {
             id: parseInt(req.params.id)

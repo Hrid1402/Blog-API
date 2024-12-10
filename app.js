@@ -1,6 +1,7 @@
 const express = require("express");
 const postRouter = require("./router/postRouter")
 const commentRouter = require("./router/commentsRouter")
+const userRouter = require("./router/userRouter")
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -58,13 +59,34 @@ new LocalStrategy({
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
+
+const authenticateJWT = (req, res, next)=>{
+    const authHeader = req.headers.authorization;
+    console.log("header: " + authHeader);
+    if (authHeader) {
+        const token = authHeader.split(' ')[1]; // Extract the token from 'Bearer <token>'
+
+        jwt.verify(token, JWT_SECRET_KEY, (err, user) => {
+            if (err) {
+                return res.status(403).json({ message: "Forbidden" });
+            }
+            req.user = user; // Attach user data to the request object
+            next(); // Proceed to the next middleware or route handler
+        });
+    } else {
+        res.status(401).json({ message: "Unauthorized" });
+    }
+};
+
+
 app.get("/", (req, res)=>{
     res.json({
         message: 'Online'
     })
 })
-app.use("/posts", postRouter);
-app.use("/comments", commentRouter);
+app.use("/posts", authenticateJWT, postRouter);
+app.use("/comments", authenticateJWT, commentRouter);
+app.use("/users", authenticateJWT, userRouter);
 
 app.post("/login", passport.authenticate('local', { session: false }), (req, res)=>{
     const token = jwt.sign({id: req.user.id, username: req.user.username}, JWT_SECRET_KEY, {expiresIn: '30m'});
@@ -100,7 +122,6 @@ app.post("/sign-up", async(req, res)=>{
             })
         }
     } )
-    
 })
 
 app.listen(PORT, ()=>console.log("http://localhost:" + PORT + "/"));

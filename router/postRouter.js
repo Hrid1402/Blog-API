@@ -3,8 +3,24 @@ const postRouter = Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const adminValidation = async (req, res, next) => {
+    console.log(req.user);
+    const user = await prisma.users.findUnique({
+        where: {
+            id: req.user.id
+        }
+    });
 
-postRouter.get("/", async (req, res)=>{
+    if (!user || !user.admin) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+    next();
+};
+
+
+postRouter.get("/", adminValidation, async (req, res)=>{
     const posts = await prisma.posts.findMany({
         select:{
             id: true,
@@ -15,7 +31,7 @@ postRouter.get("/", async (req, res)=>{
     })
     res.json(posts)
 })
-postRouter.get("/:id", async (req, res)=>{
+postRouter.get("/:id", adminValidation, async (req, res)=>{
     const post = await prisma.posts.findUnique({
         where: {
             id: parseInt(req.params.id)
@@ -27,7 +43,7 @@ postRouter.get("/:id", async (req, res)=>{
     res.json(post)
 })
 
-postRouter.post("/", async (req, res)=>{
+postRouter.post("/", adminValidation, async (req, res)=>{
     console.log(req.query)
     const post = await prisma.posts.create({
         data:{
@@ -39,7 +55,7 @@ postRouter.post("/", async (req, res)=>{
     res.json(post)
 })
 
-postRouter.put("/:id", async (req, res)=>{
+postRouter.put("/:id", adminValidation, async (req, res)=>{
     const post = await prisma.posts.update({
         where: {
             id: parseInt(req.params.id)
@@ -53,7 +69,7 @@ postRouter.put("/:id", async (req, res)=>{
     res.json(post)
 })
 
-postRouter.delete("/:id", async (req, res)=>{
+postRouter.delete("/:id", adminValidation, async (req, res)=>{
     const post = await prisma.posts.delete({
         where: {
             id: parseInt(req.params.id)

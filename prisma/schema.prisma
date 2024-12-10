@@ -12,6 +12,7 @@ model Users{
   username String @db.VarChar(250)
   password String
   admin Boolean @default(false)
+  comments Comments[]
 }
 
 model Posts{
@@ -25,9 +26,10 @@ model Posts{
 
 model Comments{
   id Int @id @default(autoincrement())
-  user String @db.VarChar(250)
   content String
   postID Int
+  userID Int
   date DateTime @default(now())
+  user Users @relation(fields: [userID], references: [id], onDelete: Cascade)
   post Posts @relation(fields: [postID], references: [id], onDelete: Cascade)
 }
