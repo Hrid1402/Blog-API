@@ -29,6 +29,7 @@ model Comments{
   content String
   postID Int
   userID Int
+  username String @db.VarChar(250)
   date DateTime @default(now())
   user Users @relation(fields: [userID], references: [id], onDelete: Cascade)
   post Posts @relation(fields: [postID], references: [id], onDelete: Cascade)

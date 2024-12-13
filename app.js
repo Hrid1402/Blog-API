@@ -1,9 +1,11 @@
 const express = require("express");
 const postRouter = require("./router/postRouter")
+const postPrivateRouter = require("./router/postPrivateRouter")
 const commentRouter = require("./router/commentsRouter")
 const userRouter = require("./router/userRouter")
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const cors = require('cors')
 
 const jwt = require("jsonwebtoken")
 const passport = require('passport');
@@ -12,6 +14,7 @@ const JwtStrategy = passportJWT.Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const ExtractJwt = passportJWT.ExtractJwt;
 const bcrypt = require('bcryptjs');
+const { body, validationResult } = require("express-validator");
 require('dotenv').config();
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
@@ -57,6 +60,7 @@ new LocalStrategy({
 );
 
 const app = express();
+app.use(cors())
 app.use(express.urlencoded({ extended: false }));
 
 
@@ -84,16 +88,44 @@ app.get("/", (req, res)=>{
         message: 'Online'
     })
 })
-app.use("/posts", authenticateJWT, postRouter);
+app.use("/posts", postRouter);
+app.use("/posts/private", authenticateJWT, postPrivateRouter);
 app.use("/comments", authenticateJWT, commentRouter);
 app.use("/users", authenticateJWT, userRouter);
 
 app.post("/login", passport.authenticate('local', { session: false }), (req, res)=>{
     const token = jwt.sign({id: req.user.id, username: req.user.username}, JWT_SECRET_KEY, {expiresIn: '30m'});
+    console.log({id: req.user.id, username: req.user.username});
     res.json({ message: 'Login successful', token });
 })
 
-app.post("/sign-up", async(req, res)=>{
+
+const validateSignUp = [
+    body("user")
+      .notEmpty().withMessage("Username is required.")
+      .isLength({ min: 1, max: 15 })
+      .withMessage("The username must have between 1 to 15 characters."),
+    body("password")
+      .notEmpty().withMessage("Password is required.")
+      .isLength({ min: 8 }).withMessage("Password must have at least 8 characters."),
+    
+    body("confirmPassword")
+      .notEmpty().withMessage("Please confirm your password.")
+      .custom((value, { req }) => {
+        if (value !== req.body.password) {
+          throw new Error("Passwords do not match.");
+        }
+        return true;
+      })
+  ];
+
+
+app.post("/sign-up", validateSignUp, async(req, res)=>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log(errors.errors);
+      return res.json(errors.errors);
+    }
     console.log('Full request body:', req.body);
     const {user, password} = req.body;
     const userName = await prisma.users.findFirst({

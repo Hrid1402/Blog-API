@@ -18,12 +18,14 @@ commentRouter.get("/:id", async (req, res)=>{
 })
 
 commentRouter.post("/", async (req, res)=>{
-    console.log(req.query)
+    console.log(req.body)
+    const {content, postID} = req.body;
     const comment = await prisma.comments.create({
         data:{
-            user: req.query.user,
-            content: req.query.content,
-            postID: parseInt(req.query.postID)
+            userID: req.user.id,
+            username: req.user.username,
+            content: content,
+            postID: parseInt(postID)
         }
     })
     res.json(comment)
@@ -52,7 +54,8 @@ commentRouter.put("/:id", async (req, res)=>{
             id: parseInt(req.params.id)
         },
         data:{
-            user: req.query.user,
+            userID: req.user.id,
+            username: req.user.username,
             content: req.query.content
         }
     })
@@ -76,11 +79,20 @@ commentRouter.delete("/:id", async (req, res)=>{
         });
     }
 
-    const comment = await prisma.comments.delete({
-        where: {
-            id: parseInt(req.params.id)
+    try {
+        const comment = await prisma.comments.delete({
+            where: {
+                id: parseInt(req.params.id)
+            }
+        });
+        res.json(comment);
+    } catch (error) {
+        if (error.code === 'P2025') {
+            res.status(404).json({ message: 'Comment not found' });
+        } else {
+            console.error(error);
+            res.status(500).json({ message: 'An unexpected error occurred' });
         }
-    })
-    res.json(comment)
+    }
 })
 module.exports = commentRouter;
